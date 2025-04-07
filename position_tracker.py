@@ -11,7 +11,7 @@ from datetime import datetime
 import warnings
 import sys
 sys.path.append('/Users/mavinkhanday/Desktop/imc-prosperity3')
-from trader1 import Trade
+from trader import Trade
 warnings.filterwarnings('ignore')
 
 class PositionTracker:
@@ -485,6 +485,6 @@ if __name__ == "__main__":
     
     # Import your Trader class
     # Change this import to match your trader implementation
-    from trader1 import Trader
+    from trader import Trader
     
     run_position_tracking(args.csv_file, Trader, args.output)

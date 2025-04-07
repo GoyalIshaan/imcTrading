@@ -1,5 +1,5 @@
 from datamodel import TradingState
-from trader1 import Trader
+from trader import Trader
 import json
 import os
 

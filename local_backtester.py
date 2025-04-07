@@ -9,7 +9,7 @@ from datamodel import (
     Order, TradingState, OrderDepth, Listing, 
     Observation, Trade
 )
-from trader1 import Trader  # Your trading algorithm
+from trader import Trader  # Your trading algorithm
 
 class LocalBacktester:
     def __init__(self, csv_path: str, trader_class: type, max_position: int = 20):

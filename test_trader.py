@@ -1,5 +1,5 @@
 # test_trader.py
-from trader1 import Trader
+from trader import Trader
 from datamodel import OrderDepth, TradingState, Observation
 
 # Create a simple test state
