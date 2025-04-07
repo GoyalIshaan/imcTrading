@@ -41,3 +41,26 @@ visualizations/
 *.yaml
 *.yml
 *.zip
+
+# Data files
+squid_ink_ml_data.csv
+
+# Analysis outputs
+*.png
+
+# Environment
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

@@ -140,8 +140,106 @@ class Trader:
         self.squid_ink_last_long_ema = None   # Long-term EMA (e.g., 20-period)
         self.squid_ink_last_ema_values = []
         self.recent_squid_ink_pl = []
+        
+        # Set up squid ink ML logging
+        self.squid_ink_log_file = "squid_ink_ml_data.csv"
+        self.init_squid_ink_log()
 
         logger.print("Trader initialized with price tracking for KELP")
+
+    def init_squid_ink_log(self):
+        """Initialize the SQUID_INK ML data log file with headers"""
+        try:
+            with open(self.squid_ink_log_file, 'w') as f:
+                headers = [
+                    "timestamp", 
+                    "best_bid", 
+                    "best_ask", 
+                    "mid_price", 
+                    "vwap",
+                    "current_ema", 
+                    "short_ema", 
+                    "long_ema", 
+                    "trend_signal",
+                    "dynamic_width",
+                    "position", 
+                    "orders_placed", 
+                    "buy_volume", 
+                    "sell_volume",
+                    "order_book_imbalance",
+                    "liquidity_score",
+                    "momentum",
+                    "recent_pl"
+                ]
+                f.write(",".join(headers) + "\n")
+        except Exception as e:
+            logger.print(f"Error initializing SQUID_INK log: {e}")
+            
+    def log_squid_ink_data(self, state, orders, timestamp, order_depth, 
+                           current_ema=None, short_ema=None, long_ema=None, 
+                           trend_signal=None, dynamic_width=None, buy_volume=0, sell_volume=0):
+        """
+        Log SQUID_INK trading data to a separate file for ML analysis
+        """
+        try:
+            position = state.position.get("SQUID_INK", 0)
+            
+            # Calculate order book metrics
+            best_bid = max(order_depth.buy_orders.keys()) if order_depth.buy_orders else 0
+            best_ask = min(order_depth.sell_orders.keys()) if order_depth.sell_orders else 0
+            mid_price = (best_bid + best_ask) / 2 if (best_bid and best_ask) else 0
+            
+            # Calculate book imbalance
+            buy_volume_total = sum(order_depth.buy_orders.values()) if order_depth.buy_orders else 0
+            sell_volume_total = abs(sum(order_depth.sell_orders.values())) if order_depth.sell_orders else 0
+            total_volume = buy_volume_total + sell_volume_total
+            order_book_imbalance = (buy_volume_total - sell_volume_total) / total_volume if total_volume > 0 else 0
+            
+            # Get liquidity score
+            liquidity_score = self.assess_liquidity(order_depth)
+            
+            # Get VWAP if available
+            vwap = 0
+            if len(self.squid_ink_vwap) > 0:
+                vwap = self.squid_ink_vwap[-1]["vwap"]
+                
+            # Calculate momentum
+            momentum, _ = self.calculate_momentum()
+            
+            # Recent P&L
+            recent_pl = sum(self.recent_squid_ink_pl[-5:]) / 5 if len(self.recent_squid_ink_pl) >= 5 else 0
+            
+            # Orders placed
+            orders_placed = len(orders) if orders else 0
+                
+            # Prepare data row
+            data = [
+                timestamp,
+                best_bid,
+                best_ask,
+                mid_price,
+                vwap,
+                current_ema if current_ema is not None else 0,
+                short_ema if short_ema is not None else 0,
+                long_ema if long_ema is not None else 0,
+                trend_signal if trend_signal is not None else 0,
+                dynamic_width if dynamic_width is not None else 0,
+                position,
+                orders_placed,
+                buy_volume,
+                sell_volume,
+                order_book_imbalance,
+                liquidity_score,
+                momentum,
+                recent_pl
+            ]
+            
+            # Write to file
+            with open(self.squid_ink_log_file, 'a') as f:
+                f.write(",".join(map(str, data)) + "\n")
+                
+        except Exception as e:
+            logger.print(f"Error logging SQUID_INK data: {e}")
 
     def calculate_recent_volatility(self, symbol):
         """
@@ -475,6 +573,11 @@ class Trader:
         buy_order_volume = 0
         sell_order_volume = 0
 
+        current_ema = None
+        short_ema = None
+        long_ema = None
+        trend_signal = None
+
         if order_depth.sell_orders and order_depth.buy_orders:
             best_ask = min(order_depth.sell_orders.keys())
             best_bid = max(order_depth.buy_orders.keys())
@@ -505,7 +608,7 @@ class Trader:
             
             # Calculate EMA
             current_ema = self.calculate_squid_ink_ema(self.squid_ink_prices, timespan)
-            short_ema,long_ema,trend_signal = self.calculate_squid_ink_dual_emas(self.squid_ink_prices)
+            short_ema, long_ema, trend_signal = self.calculate_squid_ink_dual_emas(self.squid_ink_prices)
 
             if current_ema is None:
                 current_ema =  mmmid_price
@@ -562,7 +665,7 @@ class Trader:
             if sell_quantity > 0:
                 orders.append(Order("SQUID_INK", int(baaf) - 1, -sell_quantity))
 
-        return orders
+        return orders, current_ema, short_ema, long_ema, trend_signal, dynamic_width, buy_order_volume, sell_order_volume
 
     def calculate_squid_ink_ema(self, prices, period):
         """
@@ -697,15 +800,41 @@ class Trader:
                 state.order_depths["KELP"], kelp_timespan, kelp_width, kelp_take_width, kelp_position, kelp_position_limit
             )
             result["KELP"] = kelp_orders
+            
         if "SQUID_INK" in state.order_depths:
-                squid_ink_position = state.position["SQUID_INK"] if "SQUID_INK" in state.position else 0
-                squid_ink_orders = self.squid_ink_orders(
-                    state.order_depths["SQUID_INK"], squid_ink_timespan, squid_ink_width, squid_ink_take_width, 
-                    squid_ink_position, squid_ink_position_limit
-                )
-                result["SQUID_INK"] = squid_ink_orders
+            squid_ink_position = state.position["SQUID_INK"] if "SQUID_INK" in state.position else 0
+            squid_ink_data = self.squid_ink_orders(
+                state.order_depths["SQUID_INK"], squid_ink_timespan, squid_ink_width, squid_ink_take_width, 
+                squid_ink_position, squid_ink_position_limit
+            )
+            
+            # Unpack return values from squid_ink_orders
+            squid_ink_orders = squid_ink_data[0]
+            current_ema = squid_ink_data[1]
+            short_ema = squid_ink_data[2]
+            long_ema = squid_ink_data[3]
+            trend_signal = squid_ink_data[4]
+            dynamic_width = squid_ink_data[5]
+            buy_volume = squid_ink_data[6]
+            sell_volume = squid_ink_data[7]
+            
+            result["SQUID_INK"] = squid_ink_orders
+            
+            # Log SQUID_INK data for ML analysis
+            self.log_squid_ink_data(
+                state, 
+                squid_ink_orders, 
+                state.timestamp, 
+                state.order_depths["SQUID_INK"],
+                current_ema,
+                short_ema,
+                long_ema,
+                trend_signal,
+                dynamic_width,
+                buy_volume,
+                sell_volume
+            )
 
-            # Persist any trader-specific data needed across time-steps
         # After executing trades, update P&L tracking
         if "SQUID_INK" in state.own_trades and state.timestamp > 0:
             prev_position = 0
