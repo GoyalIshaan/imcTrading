@@ -1,5 +1,5 @@
 .venv/
-imc-prosperity-3-backtest/
+imc-prosperity-3-backtester/
 venv/
 __pycache__/
 *.py[cod]
