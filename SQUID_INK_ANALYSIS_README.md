@@ -5,20 +5,27 @@
 1. Required Python packages:
 
 ```bash
-pip3 install pandas numpy matplotlib seaborn scikit-learn statsmodels
+pip3 install pandas numpy matplotlib seaborn scikit-learn statsmodels ta scipy
 ```
 
-2. Required data file:
+2. Required data files:
 
-- Ensure `squid_ink_ml_data.csv` is in your working directory
-- This file is generated during SQUID_INK trading backtests
+- `squid_ink_ml_data.csv` - Generated during SQUID_INK trading backtests
+- `nopen.csv` - Contains market data for multiple products
 
 ## Running the Analysis
 
-Execute the advanced analysis script:
+Execute the analysis scripts:
 
 ```bash
+# For advanced statistical analysis
 python3 advanced_squid_ink_analysis.py
+
+# For real-time price pattern analysis
+python3 squid_ink_price_pattern_analyzer.py
+
+# For comprehensive market analysis (all products)
+python3 master_market_analyzer.py
 ```
 
 This will generate several visualization files and print detailed analysis results.
@@ -139,3 +146,68 @@ Track these key metrics to validate the analysis:
 2. P&L by hour
 3. Combined condition success rate
 4. Lead-lag relationship stability
+
+## Master Market Analyzer
+
+The `master_market_analyzer.py` script provides comprehensive analysis for all available products, including SQUID_INK and products from nopen.csv. It generates the following visualizations for each product:
+
+### 1. Technical Analysis (`{product}_technical_analysis.png`)
+
+- **What it shows**:
+  - Price movement with multiple moving averages
+  - RSI (Relative Strength Index)
+  - MACD (Moving Average Convergence Divergence)
+- **How to interpret**:
+  - Price with statistical bands (±2σ) shows volatility ranges
+  - RSI indicates overbought (>70) and oversold (<30) conditions
+  - MACD shows momentum and potential trend changes
+
+### 2. Market Depth Analysis (`{product}_market_depth.png`)
+
+- **What it shows**:
+  - Order book depth at specific timestamps
+  - Bid and ask volumes at different price levels
+- **How to interpret**:
+  - Green bars show bid-side liquidity
+  - Red bars show ask-side liquidity
+  - Bar heights indicate volume at each price level
+
+### 3. Profitability Analysis (`{product}_profitability.png`)
+
+- **What it shows**:
+  - Cumulative profit and loss over time
+  - P&L distribution histogram
+- **How to interpret**:
+  - Trend line shows overall performance
+  - Distribution shows trade outcome patterns
+  - Mean line indicates average trade performance
+
+### Key Statistics
+
+The analyzer provides comprehensive statistics for each product:
+
+- Price statistics (mean, std dev, range)
+- Trading metrics (total trades, average size)
+- Performance metrics (total P&L, win rate)
+- Technical indicators (RSI, MACD)
+
+### Integration with Trading Strategy
+
+Use these visualizations to:
+
+1. **Market Analysis**:
+
+   - Compare performance across products
+   - Identify market regimes
+   - Track liquidity patterns
+
+2. **Risk Management**:
+
+   - Monitor position exposure
+   - Track P&L distribution
+   - Adjust sizing based on volatility
+
+3. **Strategy Optimization**:
+   - Compare performance metrics
+   - Identify optimal trading conditions
+   - Track strategy effectiveness
